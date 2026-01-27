@@ -39,6 +39,8 @@ router.put(
 );
 router.delete("/units/:id", inventoryCtrl.remove);
 router.patch("/units/:id/status", inventoryCtrl.updateStatus);
+router.post("/units/:id/submit", inventoryCtrl.submitUnit);
+router.get("/units/:unitId/verification", inventoryCtrl.unitVerificationHistory);
 
 // Availability windows
 router.post("/units/:id/availability", availabilityCtrl.addWindow);

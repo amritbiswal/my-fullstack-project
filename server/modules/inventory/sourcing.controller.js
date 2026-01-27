@@ -11,7 +11,7 @@ exports.createRequest = async (req, res, next) => {
       new ApiError("VALIDATION_ERROR", 400, "cityId and name required"),
     );
   const request = await SourcingRequest.create({
-    userId: req.user.id,
+    userId: req.user.userId,
     cityId,
     name,
     description,
@@ -32,7 +32,7 @@ exports.listOpen = async (req, res) => {
 exports.submitOffer = async (req, res, next) => {
   const { requestId, offerDetails } = req.body;
   const providerProfile = await ProviderProfile.findOne({
-    userId: req.user.id,
+    userId: req.user.userId,
   });
   if (!providerProfile)
     return next(

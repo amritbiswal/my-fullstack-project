@@ -16,7 +16,7 @@ exports.addWindow = async (req, res, next) => {
     const unit = await InventoryUnit.findById(unitId);
     if (!unit) return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
 
-    const providerProfile = await ProviderProfile.findOne({ userId: req.user.id });
+    const providerProfile = await ProviderProfile.findOne({ userId: req.user.userId });
     if (!providerProfile || unit.providerId.toString() !== providerProfile._id.toString()) {
       return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
     }
@@ -46,7 +46,7 @@ exports.listWindows = async (req, res, next) => {
   try {
     const { id: unitId } = req.params;
     const unit = await InventoryUnit.findById(unitId);
-    const providerProfile = await ProviderProfile.findOne({ userId: req.user.id });
+    const providerProfile = await ProviderProfile.findOne({ userId: req.user.userId });
     if (!unit || !providerProfile || unit.providerId.toString() !== providerProfile._id.toString()) {
       return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
     }
@@ -65,7 +65,7 @@ exports.removeWindow = async (req, res, next) => {
     if (!window) return next(new ApiError("NOT_FOUND", 404, "Availability window not found"));
 
     const unit = await InventoryUnit.findById(window.unitId);
-    const providerProfile = await ProviderProfile.findOne({ userId: req.user.id });
+    const providerProfile = await ProviderProfile.findOne({ userId: req.user.userId });
     if (!unit || !providerProfile || unit.providerId.toString() !== providerProfile._id.toString()) {
       return next(new ApiError("NOT_FOUND", 404, "Availability window not found"));
     }

@@ -1,91 +1,32 @@
 const Booking = require("../../models/Booking.model");
 const BookingLineItem = require("../../models/BookingLineItem.model");
+const Reservation = require("../../models/Reservation.model");
 const InventoryUnit = require("../../models/InventoryUnit.model");
-const AvailabilityWindow = require("../../models/AvailabilityWindow.model");
+const PlatformSKU = require("../../models/PlatformSKU.model");
+const DepositHold = require("../../models/DepositHold.model");
 const ApiError = require("../../error-handling/ApiError");
+const bookingService = require("../../modules/booking/booking.service");
 
 // POST /api/bookings
 exports.createBooking = async (req, res, next) => {
   try {
-    const { skuId, cityId, startDate, endDate, delivery } = req.body;
+    const { skuId, cityId, startDate, endDate, deliveryOption, deliveryAddress, notes } = req.body;
     if (!skuId || !cityId || !startDate || !endDate)
-      return next(
-        new ApiError("VALIDATION_ERROR", 400, "Missing required fields"),
-      );
+      return next(new ApiError("VALIDATION_ERROR", 400, "Missing required fields"));
 
-    // 1. Find all ACTIVE units for this SKU and city
-    const candidateUnits = await InventoryUnit.find({
+    // Use the booking service for allocation and booking creation
+    const booking = await bookingService.createBooking({
+      userId: req.user.id || req.user.userId,
       skuId,
       cityId,
-      status: "ACTIVE",
-    });
-
-    // 2. Find a unit with an availability window covering the requested dates and not already reserved
-    let allocatedUnit = null;
-    for (const unit of candidateUnits) {
-      // Check availability window
-      const window = await AvailabilityWindow.findOne({
-        unitId: unit._id,
-        startDate: { $lte: new Date(startDate) },
-        endDate: { $gte: new Date(endDate) },
-      });
-      if (!window) continue;
-
-      // Check for overlapping bookings (reservation lock)
-      const overlapping = await BookingLineItem.findOne({
-        unitId: unit._id,
-        $or: [
-          { startDate: { $lt: new Date(endDate), $gte: new Date(startDate) } },
-          { endDate: { $gt: new Date(startDate), $lte: new Date(endDate) } },
-          {
-            startDate: { $lte: new Date(startDate) },
-            endDate: { $gte: new Date(endDate) },
-          },
-        ],
-      });
-      if (!overlapping) {
-        allocatedUnit = unit;
-        break;
-      }
-    }
-
-    if (!allocatedUnit) {
-      return next(
-        new ApiError(
-          "VALIDATION_ERROR",
-          400,
-          "No available units for these dates",
-        ),
-      );
-    }
-
-    // 3. Create booking and line item (reservation lock)
-    const booking = await Booking.create({
-      userId: req.user.id,
-      status: "PENDING_CONFIRMATION",
-      depositHeld: false,
-    });
-
-    const lineItem = await BookingLineItem.create({
-      bookingId: booking._id,
-      unitId: allocatedUnit._id,
       startDate,
       endDate,
-      price: 0, // Set price logic as needed
+      deliveryOption,
+      deliveryAddress,
+      notes
     });
 
-    booking.lineItems = [lineItem._id];
-    await booking.save();
-
-    res.status(201).json({
-      data: {
-        bookingId: booking._id,
-        status: booking.status,
-        unitId: allocatedUnit._id,
-        startDate,
-        endDate,
-      },
-    });
+    res.status(201).json({ data: booking });
   } catch (err) {
     next(err);
   }
@@ -95,29 +36,23 @@ exports.createBooking = async (req, res, next) => {
 exports.confirmBooking = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const booking = await Booking.findById(id).populate("lineItems");
+    const booking = await Booking.findById(id).populate("userId");
     if (!booking)
       return next(new ApiError("NOT_FOUND", 404, "Booking not found"));
-    if (booking.userId.toString() !== req.user.id) {
-      return next(
-        new ApiError("AUTH_FORBIDDEN", 403, "You do not own this booking"),
-      );
+    if (String(booking.userId) !== String(req.user.id || req.user.userId)) {
+      return next(new ApiError("AUTH_FORBIDDEN", 403, "You do not own this booking"));
     }
     if (booking.status !== "PENDING_CONFIRMATION") {
-      return next(
-        new ApiError("VALIDATION_ERROR", 400, "Booking cannot be confirmed"),
-      );
+      return next(new ApiError("VALIDATION_ERROR", 400, "Booking cannot be confirmed"));
     }
     booking.status = "CONFIRMED";
     booking.depositHeld = true;
     await booking.save();
 
     // Find deposit amount from SKU
-    const lineItem = await BookingLineItem.findById(booking.lineItems[0]);
-    const unit = await InventoryUnit.findById(lineItem.unitId).populate(
-      "skuId",
-    );
-    const depositAmount = unit.skuId.depositAmount || 0;
+    const lineItem = await BookingLineItem.findOne({ bookingId: booking._id });
+    const unit = await InventoryUnit.findById(lineItem.allocatedUnitId).populate("skuId");
+    const depositAmount = unit && unit.skuId ? unit.skuId.depositAmount || 0 : 0;
 
     // Create DepositHold record
     await DepositHold.create({
@@ -125,10 +60,93 @@ exports.confirmBooking = async (req, res, next) => {
       userId: booking.userId,
       amount: depositAmount,
       status: "HELD",
-      notes: "Deposit held on booking confirmation",
+      notes: "Deposit held on booking confirmation"
     });
 
     res.json({ data: { bookingId: booking._id, status: booking.status } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/my
+exports.listMyBookings = async (req, res, next) => {
+  try {
+    const bookings = await Booking.find({ userId: req.user.id || req.user.userId })
+      .sort({ createdAt: -1 })
+      .populate("cityId")
+      .populate("zoneId");
+    res.json({ data: bookings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/:id
+exports.getBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id)
+      .populate("cityId")
+      .populate("zoneId");
+    if (!booking)
+      return next(new ApiError("NOT_FOUND", 404, "Booking not found"));
+    if (String(booking.userId) !== String(req.user.id || req.user.userId)) {
+      return next(new ApiError("AUTH_FORBIDDEN", 403, "You do not own this booking"));
+    }
+    res.json({ data: booking });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/bookings/:id/cancel
+exports.cancelBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id);
+    if (!booking)
+      return next(new ApiError("NOT_FOUND", 404, "Booking not found"));
+    if (String(booking.userId) !== String(req.user.id || req.user.userId)) {
+      return next(new ApiError("AUTH_FORBIDDEN", 403, "You do not own this booking"));
+    }
+    if (!["CONFIRMED", "PENDING_CONFIRMATION"].includes(booking.status)) {
+      return next(new ApiError("VALIDATION_ERROR", 400, "Booking cannot be cancelled"));
+    }
+    booking.status = "CANCELLED";
+    await booking.save();
+
+    // Cancel reservation(s)
+    await Reservation.updateMany(
+      { bookingId: booking._id, status: "ACTIVE" },
+      { $set: { status: "CANCELLED" } }
+    );
+
+    res.json({ data: { bookingId: booking._id, status: booking.status } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/bookings/provider
+exports.listProviderBookings = async (req, res, next) => {
+  try {
+    // Find all units owned by this provider
+    const providerUnits = await InventoryUnit.find({
+      providerId: req.user.providerProfileId
+    }).select("_id");
+    const unitIds = providerUnits.map(u => u._id);
+
+    // Find reservations for these units
+    const reservations = await Reservation.find({ unitId: { $in: unitIds }, status: "ACTIVE" });
+    const bookingIds = reservations.map(r => r.bookingId);
+
+    // Find bookings
+    const bookings = await Booking.find({ _id: { $in: bookingIds } })
+      .populate("userId")
+      .populate("cityId")
+      .populate("zoneId");
+    res.json({ data: bookings });
   } catch (err) {
     next(err);
   }

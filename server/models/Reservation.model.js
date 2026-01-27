@@ -1,24 +1,13 @@
 const { Schema, model, Types } = require("mongoose");
 
-const BOOKING_STATUS = [
-  "PENDING_CONFIRMATION",
-  "CONFIRMED",
-  "HANDOFF_VERIFIED",
-  "IN_USE",
-  "RETURN_PENDING_VERIFICATION",
-  "RETURN_VERIFIED",
-  "CLOSED",
-  "CANCELLED",
-  "REJECTED",
-  "DISPUTE_OPEN"
-];
+const ReservationSchema = new Schema({
+  unitId: { type: Types.ObjectId, ref: "InventoryUnit", required: true },
+  bookingId: { type: Types.ObjectId, ref: "Booking", required: true },
+  startDate: { type: Date, required: true},
+  endDate: { type: Date, required: true },
+  status: { type: String, enum: ["ACTIVE", "CANCELLED"], default: "ACTIVE" }
+}, { timestamps: true });
 
-const ReservationSchema = new Schema(
-  {
-    bookingLineItemId: { type: Types.ObjectId, ref: "BookingLineItem", required: true, index: true },
-    status: { type: String, enum: BOOKING_STATUS, default: "PENDING_CONFIRMATION" }
-  },
-  { timestamps: true }
-);
+ReservationSchema.index({ unitId: 1, startDate: 1, endDate: 1, status: 1 });
 
 module.exports = model("Reservation", ReservationSchema);

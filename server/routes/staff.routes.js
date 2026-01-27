@@ -13,4 +13,11 @@ router.get("/units/pending", verificationCtrl.pendingUnitsByCity);
 // Approve/reject a unit
 router.post("/units/:id/verify", verificationCtrl.verifyUnit);
 
+router.get("/queue", verificationCtrl.getQueue);
+router.post("/:taskId/claim", verificationCtrl.claimTask);
+router.post("/:taskId/release", verificationCtrl.releaseTask);
+router.post("/:taskId/approve", verificationCtrl.approveTask);
+router.post("/:taskId/reject", verificationCtrl.rejectTask);
+router.get("/units/:unitId/history", verificationCtrl.unitHistory);
+
 module.exports = router;

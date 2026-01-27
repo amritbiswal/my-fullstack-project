@@ -10,7 +10,7 @@ exports.adjustDeposit = async (req, res, next) => {
   deposit.status = "ADJUSTED";
   deposit.adjustmentAmount = adjustmentAmount;
   deposit.adjustmentNotes = adjustmentNotes;
-  deposit.adjustedBy = req.user.id;
+  deposit.adjustedBy = req.user.userId;
   await deposit.save();
   res.json({ data: deposit });
 };
