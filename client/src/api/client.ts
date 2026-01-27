@@ -1,26 +1,22 @@
 import axios from "axios";
+import { isApiFailure } from "./types";
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5005",
+  headers: { "Content-Type": "application/json" }
 });
 
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-  if (token) localStorage.setItem("accessToken", token);
-  else localStorage.removeItem("accessToken");
+export function setAuthToken(token: string | null) {
+  if (token) api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  else delete api.defaults.headers.common.Authorization;
 }
 
-export function getAccessToken() {
-  return accessToken || localStorage.getItem("accessToken");
+export function getApiErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data;
+    if (isApiFailure(data)) return data.error.message;
+    if (typeof data?.message === "string") return data.message;
+    return err.message || "Request failed";
+  }
+  return "Something went wrong";
 }
-
-api.interceptors.request.use((config: any) => {
-  const token = getAccessToken();
-  if (token)
-    config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
-  return config;
-});
-
-export default api;
