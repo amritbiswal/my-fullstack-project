@@ -30,6 +30,7 @@ export const createSkuSchema = z.object({
   transactionMode: z.enum(["MANAGED_RENTAL", "VERIFIED_ONLY"]),
   deliveryAllowed: z.coerce.boolean().default(true),
   verificationRequired: z.coerce.boolean().default(true),
+  allowedCityIds: z.array(z.string()).min(1, "At least one city is required"),
 });
 
 export type CreateSkuForm = z.infer<typeof createSkuSchema>;

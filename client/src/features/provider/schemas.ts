@@ -11,6 +11,14 @@ export const providerProfileSchema = z.object({
     zoneIds: z.array(z.string()).default([]),
     radiusKm: z.coerce.number().min(1).max(200).optional()
   }),
+  address: z.object({
+    line1: z.string().optional().or(z.literal("")),
+    line2: z.string().optional().or(z.literal("")),
+    city: z.string().optional().or(z.literal("")),
+    state: z.string().optional().or(z.literal("")),
+    country: z.string().optional().or(z.literal("")),
+    postalCode: z.string().optional().or(z.literal(""))
+  }),
   onboardingStatus: z.enum(["DRAFT", "SUBMITTED", "ACTIVE", "SUSPENDED"]).default("DRAFT")
 }).refine(
   (v) => (v.providerType === "BUSINESS" ? Boolean(v.businessName && v.businessName.trim()) : true),
