@@ -1,4 +1,4 @@
-const ApiError = require("../error-handling/ApiError");
+const { ApiError } = require("../error-handling/ApiError");
 
 function validateBody(schema) {
   return (req, res, next) => {

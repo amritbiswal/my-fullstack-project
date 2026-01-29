@@ -1,5 +1,5 @@
 const PlatformSKU = require("../../models/PlatformSKU.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
 
 exports.create = async (req, res, next) => {
   const {

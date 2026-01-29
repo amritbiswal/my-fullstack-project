@@ -1,7 +1,9 @@
 const InventoryUnit = require("../../models/InventoryUnit.model");
 const PlatformSKU = require("../../models/PlatformSKU.model");
 const ProviderProfile = require("../../models/ProviderProfile.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
+const VerificationTask = require("../../models/VerificationTask.model");
+const VerificationReport = require("../../models/VerificationReport.model");
 
 // Helper for ownership assertion
 function assertOwnership({ ownerUserId, reqUserId }) {
@@ -14,9 +16,13 @@ function assertOwnership({ ownerUserId, reqUserId }) {
 // POST /api/provider/units
 exports.create = async (req, res, next) => {
   try {
-    const { skuId, cityId, zoneId, condition, photos, title, deliveryOptions } = req.body;
-    const providerProfile = await ProviderProfile.findOne({ userId: req.user.userId });
-    if (!providerProfile) return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
+    const { skuId, cityId, zoneId, condition, photos, title, deliveryOptions } =
+      req.body;
+    const providerProfile = await ProviderProfile.findOne({
+      userId: req.user.userId,
+    });
+    if (!providerProfile)
+      return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
 
     const sku = await PlatformSKU.findById(skuId);
     if (!sku) return next(new ApiError("NOT_FOUND", 404, "SKU not found"));
@@ -42,9 +48,15 @@ exports.create = async (req, res, next) => {
 // GET /api/provider/units
 exports.list = async (req, res, next) => {
   try {
-    const providerProfile = await ProviderProfile.findOne({ userId: req.user.userId });
-    if (!providerProfile) return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
-    const units = await InventoryUnit.find({ providerId: providerProfile._id, ownerUserId: req.user.userId }).populate("skuId");
+    const providerProfile = await ProviderProfile.findOne({
+      userId: req.user.userId,
+    });
+    if (!providerProfile)
+      return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
+    const units = await InventoryUnit.find({
+      providerId: providerProfile._id,
+      ownerUserId: req.user.userId,
+    });
     res.json({ data: units });
   } catch (err) {
     next(err);
@@ -56,7 +68,10 @@ exports.get = async (req, res, next) => {
   try {
     const unit = await InventoryUnit.findById(req.params.id);
     if (!unit) return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
-    assertOwnership({ ownerUserId: unit.ownerUserId, reqUserId: req.user.userId });
+    assertOwnership({
+      ownerUserId: unit.ownerUserId,
+      reqUserId: req.user.userId,
+    });
     res.json({ data: unit });
   } catch (err) {
     next(err);
@@ -68,7 +83,10 @@ exports.update = async (req, res, next) => {
   try {
     const unit = await InventoryUnit.findById(req.params.id);
     if (!unit) return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
-    assertOwnership({ ownerUserId: unit.ownerUserId, reqUserId: req.user.userId });
+    assertOwnership({
+      ownerUserId: unit.ownerUserId,
+      reqUserId: req.user.userId,
+    });
     Object.assign(unit, req.body);
     await unit.save();
     res.json({ data: unit });
@@ -82,7 +100,10 @@ exports.remove = async (req, res, next) => {
   try {
     const unit = await InventoryUnit.findById(req.params.id);
     if (!unit) return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
-    assertOwnership({ ownerUserId: unit.ownerUserId, reqUserId: req.user.userId });
+    assertOwnership({
+      ownerUserId: unit.ownerUserId,
+      reqUserId: req.user.userId,
+    });
     await unit.deleteOne();
     res.json({ data: true });
   } catch (err) {
@@ -97,12 +118,17 @@ exports.updateStatus = async (req, res, next) => {
     const { status } = req.body;
     const unit = await InventoryUnit.findById(id);
     if (!unit) return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
-    assertOwnership({ ownerUserId: unit.ownerUserId, reqUserId: req.user.userId });
+    assertOwnership({
+      ownerUserId: unit.ownerUserId,
+      reqUserId: req.user.userId,
+    });
 
     // Only allow provider transitions: DRAFT <-> SUBMITTED
     const allowed = ["DRAFT", "SUBMITTED"];
     if (!allowed.includes(status)) {
-      return next(new ApiError("VALIDATION_ERROR", 400, "Invalid status for provider"));
+      return next(
+        new ApiError("VALIDATION_ERROR", 400, "Invalid status for provider"),
+      );
     }
     unit.status = status;
     await unit.save();
@@ -125,7 +151,13 @@ exports.submitUnit = async (req, res, next) => {
 
     // Idempotency: Only allow if DRAFT or SUBMITTED
     if (["PENDING_VERIFICATION", "ACTIVE"].includes(unit.status)) {
-      return res.json({ data: { message: "Unit already submitted or active", unitId: unit._id, status: unit.status } });
+      return res.json({
+        data: {
+          message: "Unit already submitted or active",
+          unitId: unit._id,
+          status: unit.status,
+        },
+      });
     }
 
     // Update unit status
@@ -136,15 +168,22 @@ exports.submitUnit = async (req, res, next) => {
     const existingTask = await VerificationTask.findOne({
       unitId: unit._id,
       type: "UNIT_ONBOARDING",
-      status: { $in: ["PENDING", "IN_PROGRESS"] }
+      status: { $in: ["PENDING", "IN_PROGRESS"] },
     });
     if (existingTask) {
-      return res.json({ data: { message: "Verification task already exists", taskId: existingTask._id, unitId: unit._id } });
+      return res.json({
+        data: {
+          message: "Verification task already exists",
+          taskId: existingTask._id,
+          unitId: unit._id,
+        },
+      });
     }
 
     // Get provider profile
     const providerProfile = await ProviderProfile.findById(unit.providerId);
-    if (!providerProfile) return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
+    if (!providerProfile)
+      return next(new ApiError("NOT_FOUND", 404, "Provider profile not found"));
 
     // Create verification task
     const task = await VerificationTask.create({
@@ -152,10 +191,16 @@ exports.submitUnit = async (req, res, next) => {
       unitId: unit._id,
       providerId: providerProfile._id,
       cityId: unit.cityId,
-      status: "PENDING"
+      status: "PENDING",
     });
 
-    res.status(201).json({ data: { message: "Unit submitted for verification", taskId: task._id, unitId: unit._id } });
+    res.status(201).json({
+      data: {
+        message: "Unit submitted for verification",
+        taskId: task._id,
+        unitId: unit._id,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -165,10 +210,15 @@ exports.submitUnit = async (req, res, next) => {
 exports.unitVerificationHistory = async (req, res, next) => {
   const { unitId } = req.params;
   const unit = await InventoryUnit.findById(unitId);
-  if (!unit || String(unit.ownerUserId) !== String(req.user.id || req.user.userId)) {
+  if (
+    !unit ||
+    String(unit.ownerUserId) !== String(req.user.id || req.user.userId)
+  ) {
     return next(new ApiError("NOT_FOUND", 404, "Unit not found"));
   }
   const tasks = await VerificationTask.find({ unitId }).sort({ createdAt: -1 });
-  const reports = await VerificationReport.find({ taskId: { $in: tasks.map(t => t._id) } });
+  const reports = await VerificationReport.find({
+    taskId: { $in: tasks.map((t) => t._id) },
+  });
   res.json({ data: { tasks, reports } });
 };

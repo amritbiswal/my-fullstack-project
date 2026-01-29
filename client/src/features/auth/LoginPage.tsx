@@ -8,6 +8,7 @@ import { useToast } from "../../components/ui/Toast";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { homeForRole } from "../../utils/routeHome";
 
 export default function LoginPage() {
   const nav = useNavigate();
@@ -24,14 +25,15 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (user) nav("/app/trip", { replace: true });
+    if (user) nav(homeForRole(user.role), { replace: true });
   }, [user, nav]);
 
   async function onSubmit(values: LoginForm) {
     try {
-      await login(values.email, values.password);
+      const loggedIn = await login(values.email, values.password);
+      console.log("Logged in user:", loggedIn);
+      // nav(homeForRole(loggedIn.data.role), { replace: true });
       toast("Welcome back");
-      nav("/app/trip", { replace: true });
     } catch (e: any) {
       toast(e?.response?.data?.error?.message ?? "Login failed", "error");
     }

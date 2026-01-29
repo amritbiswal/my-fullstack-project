@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute, RoleRoute } from "../auth/guards";
 import { PublicLayout } from "../layouts/PublicLayout";
 import { TouristLayout } from "../layouts/TouristLayout";
@@ -16,20 +16,24 @@ import { MessagesPage } from "../features/messages/pages/MessagesPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { PassPage } from "../features/profile/pages/PassPage";
 
-import { ProviderDashboard } from "../features/provider/pages/ProviderDashboard";
-import { ProviderInventory } from "../features/provider/pages/ProviderInventory";
-import { StaffQueue } from "../features/staff/pages/StaffQueue";
-import { PartnerScan } from "../features/partner/pages/PartnerScan";
-import { AdminCategories } from "../features/admin/pages/AdminCategories";
-import { AdminSkus } from "../features/admin/pages/AdminSkus";
+import { ProviderOnboardingPage } from "../features/provider/pages/ProviderOnboardingPage";
+import { ProviderInventoryListPage } from "../features/provider/pages/ProviderInventoryListPage";
+import { ProviderUnitCreatePage } from "../features/provider/pages/ProviderUnitCreatePage";
+import { ProviderUnitDetailPage } from "../features/provider/pages/ProviderUnitDetailPage";
+import { StaffQueuePage } from "../features/staff/pages/StaffQueuePage";
+import { StaffTaskDetailPage } from "../features/staff/pages/StaffTaskDetailPage";
+import { PartnerScanPage } from "../features/partner/pages/PartnerScanPage";
+import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
+import { AdminSkusPage } from "../features/admin/pages/AdminSkusPage";
 
 // (Auth pages assumed you already have; keep placeholders if needed)
 import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
 
-function NotAuthorized() {
-  return <div className="p-6">Not authorized.</div>;
-}
+import { NotFoundPage } from "../features/system/NotFoundPage";
+import { NotAuthorizedPage } from "../features/system/NotAuthorizedPage";
+import { ProviderDashboardPage } from "../features/provider/pages/ProviderDashboardPage";
+import { AdminDashboardPage } from "../features/admin/pages/AdminDashboardPage";
 
 export const router = createBrowserRouter([
   {
@@ -38,8 +42,8 @@ export const router = createBrowserRouter([
       { path: "/", element: <div className="p-6">Packless</div> },
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
-      { path: "/not-authorized", element: <NotAuthorized /> }
-    ]
+      { path: "/not-authorized", element: <NotAuthorizedPage /> },
+    ],
   },
 
   {
@@ -58,22 +62,42 @@ export const router = createBrowserRouter([
           { path: "/app/bookings/:bookingId", element: <BookingDetailPage /> },
           { path: "/app/messages", element: <MessagesPage /> },
           { path: "/app/profile", element: <ProfilePage /> },
-          { path: "/app/profile/pass", element: <PassPage /> }
-        ]
+          { path: "/app/profile/pass", element: <PassPage /> },
+        ],
       },
 
       // Provider
       {
-        element: <RoleRoute allowed={["PROVIDER_INDIVIDUAL", "PROVIDER_BUSINESS"]} />,
+        element: (
+          <RoleRoute allowed={["PROVIDER_INDIVIDUAL", "PROVIDER_BUSINESS", "ADMIN"]} />
+        ),
         children: [
           {
-            element: <RoleLayout title="Provider" />,
+            element: <RoleLayout title="Provider" showBottomNav={true} />,
             children: [
-              { path: "/provider/dashboard", element: <ProviderDashboard /> },
-              { path: "/provider/inventory", element: <ProviderInventory /> }
-            ]
-          }
-        ]
+              {
+                path: "/provider/dashboard",
+                element: <ProviderDashboardPage />,
+              },
+              {
+                path: "/provider/onboarding",
+                element: <ProviderOnboardingPage />,
+              },
+              {
+                path: "/provider/inventory",
+                element: <ProviderInventoryListPage />,
+              },
+              {
+                path: "/provider/inventory/new",
+                element: <ProviderUnitCreatePage />,
+              },
+              {
+                path: "/provider/inventory/:unitId",
+                element: <ProviderUnitDetailPage />,
+              },
+            ],
+          },
+        ],
       },
 
       // Staff
@@ -81,10 +105,13 @@ export const router = createBrowserRouter([
         element: <RoleRoute allowed={["STAFF_VERIFIER", "ADMIN"]} />,
         children: [
           {
-            element: <RoleLayout title="Staff" />,
-            children: [{ path: "/staff/queue", element: <StaffQueue /> }]
-          }
-        ]
+            element: <RoleLayout title="Staff" showBottomNav={true} />,
+            children: [
+              { path: "/staff/queue", element: <StaffQueuePage /> },
+              { path: "/staff/task/:taskId", element: <StaffTaskDetailPage /> },
+            ],
+          },
+        ],
       },
 
       // Partner
@@ -92,10 +119,10 @@ export const router = createBrowserRouter([
         element: <RoleRoute allowed={["PARTNER"]} />,
         children: [
           {
-            element: <RoleLayout title="Partner" />,
-            children: [{ path: "/partner/scan", element: <PartnerScan /> }]
-          }
-        ]
+            element: <RoleLayout title="Partner" showBottomNav={true} />,
+            children: [{ path: "/partner/scan", element: <PartnerScanPage /> }],
+          },
+        ],
       },
 
       // Admin
@@ -103,14 +130,23 @@ export const router = createBrowserRouter([
         element: <RoleRoute allowed={["ADMIN"]} />,
         children: [
           {
-            element: <RoleLayout title="Admin" />,
+            element: <RoleLayout title="Admin" showBottomNav={true} />,
             children: [
-              { path: "/admin/catalog/categories", element: <AdminCategories /> },
-              { path: "/admin/catalog/skus", element: <AdminSkus /> }
-            ]
-          }
-        ]
-      }
-    ]
-  }
+              {
+                path: "/admin/dashboard",
+                element: <AdminDashboardPage />
+              },
+              {
+                path: "/admin/catalog/categories",
+                element: <AdminCategoriesPage />,
+              },
+              { path: "/admin/catalog/skus", element: <AdminSkusPage /> },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  // Catch-all for 404
+  { path: "*", element: <NotFoundPage /> },
 ]);

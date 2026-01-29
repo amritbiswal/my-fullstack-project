@@ -1,7 +1,7 @@
 const SourcingRequest = require("../../models/SourcingRequest.model");
 const SourcingDecision = require("../../models/SourcingDecision.model");
 const ProviderProfile = require("../../models/ProviderProfile.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
 
 // Tourist creates a sourcing request
 exports.createRequest = async (req, res, next) => {

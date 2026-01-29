@@ -1,7 +1,7 @@
 const SourcingRequest = require("../../models/SourcingRequest.model");
 const SourcingDecision = require("../../models/SourcingDecision.model");
 const PlatformSKU = require("../../models/PlatformSKU.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
 
 // Admin approves/rejects an offer, can create SKU if needed
 exports.decideOffer = async (req, res, next) => {
@@ -27,7 +27,9 @@ exports.decideOffer = async (req, res, next) => {
 
   // Mark request as fulfilled if approved
   if (action === "APPROVE") {
-    await SourcingRequest.findByIdAndUpdate(offer.requestId, { status: "FULFILLED" });
+    await SourcingRequest.findByIdAndUpdate(offer.requestId, {
+      status: "FULFILLED",
+    });
   }
   res.json({ data: offer });
 };

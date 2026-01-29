@@ -35,6 +35,7 @@ export function CheckoutPage() {
   const deposit = s.transactionMode === "MANAGED_RENTAL" ? (s.depositAmount ?? 0) : 0;
 
   async function onConfirm() {
+    
     try {
       const booking = await create.mutateAsync({
         skuId: s._id,
