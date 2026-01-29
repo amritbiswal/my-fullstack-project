@@ -3,7 +3,7 @@ import type { ApiSuccess } from "../../api/types";
 import type { Booking, CreateBookingInput } from "./bookingTypes";
 
 export async function createBooking(payload: CreateBookingInput): Promise<Booking> {
-  const res = await api.post<ApiSuccess<Booking>>("/api/bookings", payload);
+  const res = await api.post<ApiSuccess<Booking>>("/api/booking", payload);
   return res.data.data;
 }
 

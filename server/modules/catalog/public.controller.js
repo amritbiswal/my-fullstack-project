@@ -1,7 +1,7 @@
 const PlatformSKU = require("../../models/PlatformSKU.model");
 const InventoryUnit = require("../../models/InventoryUnit.model");
 const AvailabilityWindow = require("../../models/AvailabilityWindow.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
 
 // GET /api/catalog/search?cityId=...&startDate=...&endDate=...
 exports.search = async (req, res, next) => {

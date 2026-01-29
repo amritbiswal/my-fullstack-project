@@ -1,5 +1,5 @@
 const ProviderProfile = require("../../models/ProviderProfile.model");
-const ApiError = require("../../error-handling/ApiError");
+const { ApiError } = require("../../error-handling/ApiError");
 
 // GET /api/provider/profile
 exports.getProfile = async (req, res) => {

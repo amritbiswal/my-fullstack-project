@@ -5,6 +5,7 @@ const requireRole = require("../middlewares/requireRole.middleware");
 const profileCtrl = require("../modules/provider/profile.controller");
 const inventoryCtrl = require("../modules/inventory/inventory.controller");
 const availabilityCtrl = require("../modules/inventory/availability.controller");
+const skuCtrl = require("../modules/catalog/sku.controller");
 
 const { validateBody } = require("../middlewares/validate.middleware");
 const {
@@ -27,6 +28,8 @@ router.put(
   validateBody(providerProfileSchema),
   profileCtrl.upsertProfile,
 );
+//skus available to provider
+router.get("/skus", skuCtrl.list);
 
 // Inventory units
 router.post("/units", validateBody(inventoryUnitSchema), inventoryCtrl.create);

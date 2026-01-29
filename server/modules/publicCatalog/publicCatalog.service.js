@@ -8,7 +8,7 @@ exports.checkSkuAvailability = async ({ skuId, cityId, startDate, endDate }) => 
   const units = await InventoryUnit.find({
     skuId, cityId, status: "ACTIVE"
   }).select("_id");
-
+  
   if (!units.length) return { availableUnitIds: [], availableCount: 0 };
 
   // 2. Filter units with an AvailabilityWindow covering [startDate, endDate)

@@ -12,4 +12,9 @@ export type PlatformSku = {
   deliveryAllowed: boolean;
   verificationRequired: boolean;
   availableCount: number;
+  categoryId?: string;
+  slug?: string;
+  allowedCityIds?: string[];
+  createdAt?: string | number | Date;
+  updatedAt?: string | number | Date;
 };
