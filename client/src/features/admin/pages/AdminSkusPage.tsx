@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -48,7 +47,6 @@ export function AdminSkusPage() {
     },
   });
 
-  const name = watch("name");
   const slug = watch("slug");
   const transactionMode = watch("transactionMode");
   const deliveryAllowed = watch("deliveryAllowed");
