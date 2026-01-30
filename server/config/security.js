@@ -1,5 +1,5 @@
 const helmet = require("helmet");
-// const cors = require("cors");
+const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 
 const FRONTEND_URL = process.env.ORIGIN || "http://localhost:5005";
@@ -18,7 +18,14 @@ const authLimiter = rateLimit({
 function applySecurity(app) {
   app.set("trust proxy", 1);
   // { origin: [FRONTEND_URL] }
-  app.use(cors());
+  app.use(
+    cors({
+      origin: FRONTEND_URL,
+      credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    }),
+  );
   app.use(helmet());
   app.use(baseLimiter);
 }
