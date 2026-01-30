@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { providerProfileSchema, type ProviderProfileForm } from "../schemas";
@@ -10,13 +10,30 @@ import { Skeleton } from "../../../components/ui/Skeleton";
 import { useToast } from "../../../components/ui/Toast";
 import { useNavigate } from "react-router-dom";
 import { useTrip } from "../../trip/TripContext";
+import { Dialog } from "@headlessui/react";
+import { Check, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../../api/client";
 
 export function ProviderOnboardingPage() {
   const { toast } = useToast();
   const nav = useNavigate();
   const profile = useProviderProfile();
   const save = useUpsertProviderProfile();
-  const { cityId } = useTrip(); // optional helper; provider can start with same city as trip for convenience
+  const { cityId } = useTrip();
+
+  // Fetch cities and zones
+  const cities = useQuery({
+    queryKey: ["public-cities"],
+    queryFn: async () => (await api.get("/api/public/cities")).data.data,
+  });
+  const zones = useQuery({
+    queryKey: ["public-zones"],
+    queryFn: async () => (await api.get("/api/public/zones")).data.data,
+  });
+
+  const [cityDialogOpen, setCityDialogOpen] = useState(false);
+  const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
 
   const {
     register,
@@ -33,11 +50,21 @@ export function ProviderOnboardingPage() {
       phone: "",
       email: "",
       onboardingStatus: "DRAFT",
+      address: {
+        line1: "",
+        line2: "",
+        city: "",
+        state: "",
+        country: "",
+        postalCode: ""
+      },
       service: { cityIds: cityId ? [cityId] : [], zoneIds: [], radiusKm: 10 }
     }
   });
 
   const providerType = watch("providerType");
+  const selectedCityIds = watch("service.cityIds");
+  const selectedZoneIds = watch("service.zoneIds");
 
   useEffect(() => {
     if (!profile.data) return;
@@ -51,6 +78,12 @@ export function ProviderOnboardingPage() {
     setValue("service.cityIds", p.service?.cityIds ?? []);
     setValue("service.zoneIds", p.service?.zoneIds ?? []);
     setValue("service.radiusKm", (p.service?.radiusKm as any) ?? 10);
+    setValue("address.line1", p.address?.line1 ?? "");
+    setValue("address.line2", p.address?.line2 ?? "");
+    setValue("address.city", p.address?.city ?? "");
+    setValue("address.state", p.address?.state ?? "");
+    setValue("address.country", p.address?.country ?? "");
+    setValue("address.postalCode", p.address?.postalCode ?? "");
   }, [profile.data, setValue]);
 
   async function onSubmit(values: ProviderProfileForm) {
@@ -62,6 +95,14 @@ export function ProviderOnboardingPage() {
         phone: values.phone?.trim() || undefined,
         email: values.email?.trim() || undefined,
         onboardingStatus: values.onboardingStatus,
+        address: {
+          line1: values.address?.line1 || "",
+          line2: values.address?.line2 || "",
+          city: values.address?.city || "",
+          state: values.address?.state || "",
+          country: values.address?.country || "",
+          postalCode: values.address?.postalCode || ""
+        },
         service: {
           cityIds: values.service.cityIds,
           zoneIds: values.service.zoneIds ?? [],
@@ -125,25 +166,214 @@ export function ProviderOnboardingPage() {
 
           <Input label="Display name" error={errors.displayName?.message} {...register("displayName")} />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Phone (optional)" error={errors.phone?.message} {...register("phone")} />
+            <Input label="Phone" error={errors.phone?.message} {...register("phone")} />
             <Input label="Email" error={errors.email?.message} {...register("email")} />
           </div>
 
-          {/* Simple cityIds input for MVP; later replace with multi-select from /public/cities */}
-          <Input
-            label="Service City IDs (comma-separated)"
-            error={errors.service?.cityIds?.message as any}
-            placeholder="e.g. 65ab..., 65ac..."
-            onChange={(e) =>
-              setValue(
-                "service.cityIds",
-                e.target.value
-                  .split(",")
-                  .map((x) => x.trim())
-                  .filter(Boolean)
-              )
-            }
-          />
+          {/* Address fields */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-slate-700">Address</div>
+            <Input label="Address Line 1" {...register("address.line1")} />
+            <Input label="Address Line 2" {...register("address.line2")} />
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="City" {...register("address.city")} />
+              <Input label="State" {...register("address.state")} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Country" {...register("address.country")} />
+              <Input label="Postal Code" {...register("address.postalCode")} />
+            </div>
+          </div>
+
+          {/* Multi-select for cities */}
+          <label className="block">
+            <div className="mb-1 text-sm font-medium text-slate-700">Service Cities</div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(cities.data ?? [])
+                .filter((city: any) => selectedCityIds.includes(city._id))
+                .map((city: any) => (
+                  <span
+                    key={city._id}
+                    className="flex items-center gap-1 rounded bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800 border border-teal-200"
+                  >
+                    {city.name}
+                    <button
+                      type="button"
+                      className="ml-1 text-teal-600 hover:text-red-600"
+                      onClick={() =>
+                        setValue(
+                          "service.cityIds",
+                          selectedCityIds.filter((id: string) => id !== city._id),
+                          { shouldValidate: true }
+                        )
+                      }
+                      aria-label={`Remove ${city.name}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              <button
+                type="button"
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50"
+                onClick={() => setCityDialogOpen(true)}
+              >
+                + Add City
+              </button>
+            </div>
+            {errors.service?.cityIds?.message && (
+              <div className="mt-1 text-xs text-red-600">
+                {errors.service.cityIds.message as any}
+              </div>
+            )}
+
+            {/* Modal for city selection */}
+            <Dialog
+              open={cityDialogOpen}
+              onClose={() => setCityDialogOpen(false)}
+              className="relative z-50"
+            >
+              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <Dialog.Panel className="w-full max-w-md rounded-xl bg-white p-4">
+                  <Dialog.Title className="text-lg font-semibold mb-2">
+                    Select Cities
+                  </Dialog.Title>
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {(cities.data ?? []).map((city: any) => {
+                      const checked = selectedCityIds.includes(city._id);
+                      return (
+                        <label
+                          key={city._id}
+                          className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${
+                            checked ? "bg-teal-50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? selectedCityIds.filter((id: string) => id !== city._id)
+                                : [...selectedCityIds, city._id];
+                              setValue("service.cityIds", next, { shouldValidate: true });
+                            }}
+                            className="accent-teal-600"
+                          />
+                          <span className="flex-1 truncate">{city.name}</span>
+                          {checked && <Check size={16} className="text-teal-600" />}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="rounded px-4 py-2 text-sm font-medium bg-slate-100"
+                      onClick={() => setCityDialogOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </div>
+            </Dialog>
+          </label>
+
+          {/* Multi-select for zones */}
+          <label className="block">
+            <div className="mb-1 text-sm font-medium text-slate-700">Service Zones</div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(zones.data ?? [])
+                .filter((zone: any) => selectedZoneIds.includes(zone._id))
+                .map((zone: any) => (
+                  <span
+                    key={zone._id}
+                    className="flex items-center gap-1 rounded bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800 border border-teal-200"
+                  >
+                    {zone.name}
+                    <button
+                      type="button"
+                      className="ml-1 text-teal-600 hover:text-red-600"
+                      onClick={() =>
+                        setValue(
+                          "service.zoneIds",
+                          selectedZoneIds.filter((id: string) => id !== zone._id),
+                          { shouldValidate: true }
+                        )
+                      }
+                      aria-label={`Remove ${zone.name}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              <button
+                type="button"
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50"
+                onClick={() => setZoneDialogOpen(true)}
+              >
+                + Add Zone
+              </button>
+            </div>
+            {errors.service?.zoneIds?.message && (
+              <div className="mt-1 text-xs text-red-600">
+                {errors.service.zoneIds.message as any}
+              </div>
+            )}
+
+            {/* Modal for zone selection */}
+            <Dialog
+              open={zoneDialogOpen}
+              onClose={() => setZoneDialogOpen(false)}
+              className="relative z-50"
+            >
+              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <Dialog.Panel className="w-full max-w-md rounded-xl bg-white p-4">
+                  <Dialog.Title className="text-lg font-semibold mb-2">
+                    Select Zones
+                  </Dialog.Title>
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {(zones.data ?? []).map((zone: any) => {
+                      const checked = selectedZoneIds.includes(zone._id);
+                      return (
+                        <label
+                          key={zone._id}
+                          className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${
+                            checked ? "bg-teal-50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? selectedZoneIds.filter((id: string) => id !== zone._id)
+                                : [...selectedZoneIds, zone._id];
+                              setValue("service.zoneIds", next, { shouldValidate: true });
+                            }}
+                            className="accent-teal-600"
+                          />
+                          <span className="flex-1 truncate">{zone.name}</span>
+                          {checked && <Check size={16} className="text-teal-600" />}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="rounded px-4 py-2 text-sm font-medium bg-slate-100"
+                      onClick={() => setZoneDialogOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </div>
+            </Dialog>
+          </label>
 
           <Input label="Radius (km)" type="number" error={errors.service?.radiusKm?.message as any} {...register("service.radiusKm")} />
 

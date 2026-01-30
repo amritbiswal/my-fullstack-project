@@ -34,12 +34,13 @@ import { NotFoundPage } from "../features/system/NotFoundPage";
 import { NotAuthorizedPage } from "../features/system/NotAuthorizedPage";
 import { ProviderDashboardPage } from "../features/provider/pages/ProviderDashboardPage";
 import { AdminDashboardPage } from "../features/admin/pages/AdminDashboardPage";
+import LandingPage from "../features/marketing/pages/LandingPage";
 
 export const router = createBrowserRouter([
   {
     element: <PublicLayout />,
     children: [
-      { path: "/", element: <div className="p-6">Packless</div> },
+      { path: "/", element: <LandingPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
       { path: "/not-authorized", element: <NotAuthorizedPage /> },

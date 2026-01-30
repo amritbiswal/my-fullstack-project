@@ -1,5 +1,5 @@
 const helmet = require("helmet");
-const cors = require("cors");
+// const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 
 const FRONTEND_URL = process.env.ORIGIN || "http://localhost:5005";

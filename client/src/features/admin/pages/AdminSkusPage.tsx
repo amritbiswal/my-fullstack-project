@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -8,17 +8,29 @@ import { Button } from "../../../components/ui/Button";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { Badge } from "../../../components/ui/Badge";
 import { useToast } from "../../../components/ui/Toast";
+import { Dialog } from "@headlessui/react";
+import { Check, X } from "lucide-react";
 
 import { useAdminCategories, useAdminSkus, useCreateAdminSku } from "../hooks";
 import { AdminListCard } from "../components/AdminListCard";
 import { createSkuSchema, type CreateSkuForm } from "../schemas";
 import { toSlug } from "../../../utils/slug";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../../api/client";
 
 export function AdminSkusPage() {
+  const [cityDialogOpen, setCityDialogOpen] = useState(false);
   const { toast } = useToast();
   const categories = useAdminCategories();
   const skus = useAdminSkus();
   const create = useCreateAdminSku();
+  
+
+  // Fetch cities for multi-select
+  const cities = useQuery({
+    queryKey: ["public-cities"],
+    queryFn: async () => (await api.get("/api/public/cities")).data.data,
+  });
 
   function getCategoryName(category: { name?: string } | string) {
     if (typeof category === "string") return category;
@@ -45,14 +57,15 @@ export function AdminSkusPage() {
       transactionMode: "MANAGED_RENTAL",
       deliveryAllowed: true,
       verificationRequired: true,
+      allowedCityIds: [],
     },
   });
 
-  const name = watch("name");
   const slug = watch("slug");
   const transactionMode = watch("transactionMode");
   const deliveryAllowed = watch("deliveryAllowed");
   const verificationRequired = watch("verificationRequired");
+  const allowedCityIds = watch("allowedCityIds");
 
   async function onSubmit(values: CreateSkuForm) {
     try {
@@ -70,6 +83,7 @@ export function AdminSkusPage() {
         transactionMode: values.transactionMode,
         deliveryAllowed: values.deliveryAllowed,
         verificationRequired: values.verificationRequired,
+        allowedCityIds: values.allowedCityIds,
       });
 
       toast("SKU created");
@@ -135,6 +149,111 @@ export function AdminSkusPage() {
                 {errors.categoryId.message}
               </div>
             )}
+          </label>
+
+          {/* Multi-select for cities */}
+          <label className="block">
+            <div className="mb-1 text-sm font-medium text-slate-700">
+              Cities
+            </div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(cities.data ?? [])
+                .filter((city: any) => allowedCityIds.includes(city._id))
+                .map((city: any) => (
+                  <span
+                    key={city._id}
+                    className="flex items-center gap-1 rounded bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800 border border-teal-200"
+                  >
+                    {city.name}
+                    <button
+                      type="button"
+                      className="ml-1 text-teal-600 hover:text-red-600"
+                      onClick={() =>
+                        setValue(
+                          "allowedCityIds",
+                          allowedCityIds.filter(
+                            (id: string) => id !== city._id,
+                          ),
+                          { shouldValidate: true },
+                        )
+                      }
+                      aria-label={`Remove ${city.name}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
+              <button
+                type="button"
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 hover:bg-slate-50"
+                onClick={() => setCityDialogOpen(true)}
+              >
+                + Add City
+              </button>
+            </div>
+            {errors.allowedCityIds?.message && (
+              <div className="mt-1 text-xs text-red-600">
+                {errors.allowedCityIds.message}
+              </div>
+            )}
+
+            {/* Modal for city selection */}
+            <Dialog
+              open={cityDialogOpen}
+              onClose={() => setCityDialogOpen(false)}
+              className="relative z-50"
+            >
+              <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <Dialog.Panel className="w-full max-w-md rounded-xl bg-white p-4">
+                  <Dialog.Title className="text-lg font-semibold mb-2">
+                    Select Cities
+                  </Dialog.Title>
+                  <div className="max-h-60 overflow-y-auto space-y-1">
+                    {(cities.data ?? []).map((city: any) => {
+                      const checked = allowedCityIds.includes(city._id);
+                      return (
+                        <label
+                          key={city._id}
+                          className={`flex items-center gap-2 px-2 py-2 rounded cursor-pointer ${
+                            checked ? "bg-teal-50" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? allowedCityIds.filter(
+                                    (id: string) => id !== city._id,
+                                  )
+                                : [...allowedCityIds, city._id];
+                              setValue("allowedCityIds", next, {
+                                shouldValidate: true,
+                              });
+                            }}
+                            className="accent-teal-600"
+                          />
+                          <span className="flex-1 truncate">{city.name}</span>
+                          {checked && (
+                            <Check size={16} className="text-teal-600" />
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      className="rounded px-4 py-2 text-sm font-medium bg-slate-100"
+                      onClick={() => setCityDialogOpen(false)}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </div>
+            </Dialog>
           </label>
 
           <Input

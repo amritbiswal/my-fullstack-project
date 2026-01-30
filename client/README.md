@@ -1,73 +1,175 @@
-# React + TypeScript + Vite
+# 📱 Packless – Frontend (PWA)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Mobile-first rental experience for travelers**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Overview
 
-## React Compiler
+Packless is a mobile-first, PWA-style web app that delivers a native-like rental experience for travelers. The frontend supports multiple user roles, each with a dedicated UI and workflow:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Tourists**
+- **Providers**
+- **Staff Verifiers**
+- **Admins**
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Design Philosophy
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Mobile-first, app-like UX
+- Clean, trustworthy, travel-friendly design
+- Role-aware navigation
+- Fast and responsive
+- Scalable component architecture
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tech Stack
+
+- **Framework:** React + TypeScript
+- **Build Tool:** Vite
+- **Routing:** React Router v6
+- **State/Data:** TanStack React Query
+- **Forms:** React Hook Form + Zod
+- **Styling:** Tailwind CSS
+- **Icons:** Lucide
+- **PWA:** Vite PWA plugin
+
+---
+
+## Project Structure
+
+```text
+src/
+├─ app/
+│  └─ routes.tsx
+├─ auth/
+├─ features/
+│  ├─ marketing/
+│  ├─ auth/
+│  ├─ trip/
+│  ├─ catalog/
+│  ├─ bookings/
+│  ├─ provider/
+│  ├─ staff/
+│  ├─ admin/
+│  └─ profile/
+├─ components/
+│  ├─ ui/
+│  └─ app/
+├─ api/
+├─ utils/
+└─ styles/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Key Screens & Flows
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Public
+
+- Landing page (Packless concept)
+- Login / Register
+
+### Tourist App
+
+- Trip setup (city + dates)
+- Home & search
+- Category browsing
+- SKU detail
+- Checkout
+- My bookings
+- Profile & Packless Pass
+
+### Provider Portal
+
+- Dashboard
+- Profile onboarding
+- Inventory units
+- Availability windows
+
+### Staff Console
+
+- Verification queue
+- Task claim/release
+- Unit approve/reject
+- Verification history
+
+### Admin Console
+
+- Dashboard
+- Category management
+- SKU management
+
+---
+
+## MVP Features (Implemented)
+
+- Responsive PWA-style UI
+- Role-based routing & guards
+- Staff verification UI
+- Provider inventory flow
+- Tourist booking flow
+- API-integrated search & booking
+- Clean, reusable UI system
+
+---
+
+## Future Enhancements
+
+- QR-based Packless Pass
+- Offline PWA support
+- Push notifications
+- Maps & location awareness
+- In-app chat
+- Reviews & ratings
+- Multi-language support
+- Dark mode
+
+---
+
+## Development Setup
+
+```bash
+npm install
+npm run dev
 ```
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+VITE_API_BASE_URL=http://localhost:4000/api
+```
+
+---
+
+## Deployment
+
+- Works with Vercel / Netlify
+- Backend-agnostic (API-driven)
+- PWA ready
+
+---
+
+## License
+
+MIT License
+
+---
+
+## Author
+
+**Amrit**  
+Full-Stack Dev  
+Founder – Packless
+
+---
+
+## Copyright
+
+© 2026 Packless. All rights reserved.

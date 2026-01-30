@@ -30,9 +30,7 @@ export default function LoginPage() {
 
   async function onSubmit(values: LoginForm) {
     try {
-      const loggedIn = await login(values.email, values.password);
-      console.log("Logged in user:", loggedIn);
-      // nav(homeForRole(loggedIn.data.role), { replace: true });
+      await login(values.email, values.password);
       toast("Welcome back");
     } catch (e: any) {
       toast(e?.response?.data?.error?.message ?? "Login failed", "error");

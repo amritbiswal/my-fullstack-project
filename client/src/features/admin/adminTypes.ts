@@ -21,4 +21,5 @@ export type Sku = {
   deliveryAllowed: boolean;
   verificationRequired: boolean;
   createdAt?: string;
+  allowedCityIds: string[];
 };

@@ -8,6 +8,7 @@ import { useToast } from "../../components/ui/Toast";
 import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
+import { homeForRole } from "../../utils/routeHome";
 
 export default function RegisterPage() {
   const nav = useNavigate();
@@ -30,7 +31,7 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    if (user) nav("/app/trip", { replace: true });
+    if (user) nav(homeForRole(user.role), { replace: true });
   }, [user, nav]);
 
   const role = watch("role");
@@ -44,7 +45,7 @@ export default function RegisterPage() {
         role: values.role
       });
       toast("Account created");
-      nav("/app/trip", { replace: true });
+      nav(homeForRole(values.role), { replace: true });
     } catch (e: any) {
       toast(e?.response?.data?.error?.message ?? "Registration failed", "error");
     }
