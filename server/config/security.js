@@ -20,7 +20,7 @@ function applySecurity(app) {
   // { origin: [FRONTEND_URL] }
   app.use(
     cors({
-      origin: FRONTEND_URL,
+      origin: [FRONTEND_URL],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
